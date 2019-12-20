@@ -28,10 +28,10 @@ parser.add_argument('--images_path', default='./Images',
 args = parser.parse_args()
 print(args)
 
-if torch.cuda.is_available() and args.cuda:
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-    torch.set_default_tensor_type('torch.FloatTensor')
+# if torch.cuda.is_available() and args.cuda:
+#     torch.set_default_tensor_type('torch.cuda.FloatTensor')
+# else:
+#     torch.set_default_tensor_type('torch.FloatTensor')
 
 
 
