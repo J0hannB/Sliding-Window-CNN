@@ -87,7 +87,7 @@ batch_iterator = iter(data_loader)
 while True:
     try:
 
-        iter_count ++ 1
+        iter_count += 1
 
         try:
             images, targets = next(batch_iterator)
@@ -102,11 +102,12 @@ while True:
         optimizer.zero_grad()
         out = net(images)
         loss = criterion(out, targets)
-        print("Loss: " + str(loss.data))
+        print("Iter {}, Loss: ".format(iter_counta) + str(loss.data))
         loss.backward()
         optimizer.step() # Does the update
 
         if iter_count % 100 == 0:
+            print("saving model after {} iterations".format(iter_count))
             torch.save(net.state_dict(), "./saved_model_sliding_window_{}.pth".format(iter_count))
 
 
