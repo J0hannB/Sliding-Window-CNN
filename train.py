@@ -28,7 +28,7 @@ parser.add_argument('--window_size', default=114, type=int,
                     help='size of sliding window')
 parser.add_argument('--batch_size', default=32, type=int,
                     help='number of windows to process at once')
-parser.add_argument('--lr', default=0.001, type=int,
+parser.add_argument('--lr', default=0.001, type=float,
                     help='learning rate')
 parser.add_argument('--start_iter', default=0, type=int,
                     help='iteration to start at')
