@@ -10,6 +10,8 @@ import sys
 import numpy as np
 import argparse
 
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
 
 parser = argparse.ArgumentParser(
     description='Train sliding window CNN')
@@ -18,12 +20,13 @@ parser.add_argument('--resume',
                     help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='./', type=str,
                     help='File path to save results')
-parser.add_argument('--cuda', default=True, type=str2bool,
+parser.add_argument('--cuda', default=False, type=str2bool,
                     help='Use cuda to train model')
-parser.add_argument('--images_path', default=VOC_ROOT,
+parser.add_argument('--images_path', default='./Images',
                     help='Location of images root directory')
 
 args = parser.parse_args()
+print(args)
 
 if torch.cuda.is_available() and args.cuda:
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -42,8 +45,6 @@ iter_count = 0
 if len(sys.argv) < 2:
     print("must specify images directory")
     sys.exit()
-
-image_dir = sys.argv[1]
 
 
 net = SlidingWindowCNN(window_size, num_classes)
@@ -68,9 +69,8 @@ params = list(net.parameters())
 print(len(params))
 print(params[0].size())
 
-# image_dir = input("Enter image dir: ")
 
-dataset = CustomDetection(image_dir, window_size, window_size, 'windows', label=False) #True)
+dataset = CustomDetection(args.images_path, window_size, window_size, 'windows', label=False) #True)
 
 
 data_loader = data.DataLoader(dataset, batch_size, 
@@ -80,13 +80,6 @@ data_loader = data.DataLoader(dataset, batch_size,
 
 batch_iterator = iter(data_loader)
 
-# files_orig = os.listdir(image_dir)
-# labels = []
-# files = []
-
-# for file in files_orig:
-#     if os.path.splitext(file)[1] == '.jpg':
-#         files.append(file)
 
 while True:
     try:
