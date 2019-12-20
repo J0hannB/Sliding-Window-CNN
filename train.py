@@ -8,6 +8,29 @@ import torch.utils.data as data
 import os
 import sys
 import numpy as np
+import argparse
+
+
+parser = argparse.ArgumentParser(
+    description='Train sliding window CNN')
+parser.add_argument('--resume',
+                    default=None, type=str,
+                    help='Trained state_dict file path to open')
+parser.add_argument('--save_folder', default='./', type=str,
+                    help='File path to save results')
+parser.add_argument('--cuda', default=True, type=str2bool,
+                    help='Use cuda to train model')
+parser.add_argument('--images_path', default=VOC_ROOT,
+                    help='Location of images root directory')
+
+args = parser.parse_args()
+
+if torch.cuda.is_available() and args.cuda:
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+else:
+    torch.set_default_tensor_type('torch.FloatTensor')
+
+
 
 window_size = 114
 batch_size = 32
@@ -26,6 +49,17 @@ image_dir = sys.argv[1]
 net = SlidingWindowCNN(window_size, num_classes)
 print(net)
 
+if args.cuda:
+    net = torch.nn.DataParallel(net)
+
+if args.resume is not None:
+    print('Resuming training, loading {}...'.format(args.resume))
+    net.load_weights(args.resume)
+
+if args.cuda:
+    net = net.cuda()
+
+
 # TODO try different types of opimizers and loss functions
 optimizer = optim.SGD(net.parameters(), lr = 0.0001)
 criterion = nn.MSELoss()
@@ -42,7 +76,7 @@ dataset = CustomDetection(image_dir, window_size, window_size, 'windows', label=
 data_loader = data.DataLoader(dataset, batch_size, 
                                 num_workers=0, 
                                 shuffle=True,
-                                pin_memory=False)
+                                pin_memory=True)
 
 batch_iterator = iter(data_loader)
 
@@ -64,6 +98,10 @@ while True:
         except StopIteration:
             batch_iterator = iter(data_loader)
             images, targets = next(batch_iterator)
+
+        if args.cuda:
+            images = images.cuda()
+            targets = targets.cuda()
 
         optimizer.zero_grad()
         out = net(images)
