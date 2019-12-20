@@ -42,7 +42,7 @@ dataset = CustomDetection(image_dir, window_size, window_size, 'windows', label=
 data_loader = data.DataLoader(dataset, batch_size, 
                                 num_workers=0, 
                                 shuffle=True,
-                                pin_memory=True)
+                                pin_memory=False)
 
 batch_iterator = iter(data_loader)
 
