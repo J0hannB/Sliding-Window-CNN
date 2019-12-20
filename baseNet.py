@@ -47,7 +47,7 @@ class SlidingWindowCNN(nn.Module):
         )
 
 
-    def forward(self, X):
+    def forward(self, x):
         # h = self.slice1(x)
         # h_relu1_2 = h 
         # h = self.slice2(h)
