@@ -108,7 +108,8 @@ while True:
 
         if iter_count % 100 == 0:
             print("saving model after {} iterations".format(iter_count))
-            torch.save(net.state_dict(), "./saved_model_sliding_window_{}.pth".format(iter_count))
+            save_path = os.path.join(args.save_folder, "saved_model_sliding_window_{}.pth".format(iter_count))
+            torch.save(net.state_dict(), save_path)
 
 
 
