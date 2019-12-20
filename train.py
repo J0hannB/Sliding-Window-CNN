@@ -24,6 +24,14 @@ parser.add_argument('--cuda', default=False, type=str2bool,
                     help='Use cuda to train model')
 parser.add_argument('--images_path', default='./Images',
                     help='Location of images root directory')
+parser.add_argument('--window_size', default=114, type=int,
+                    help='size of sliding window')
+parser.add_argument('--batch_size', default=32, type=int,
+                    help='number of windows to process at once')
+parser.add_argument('--lr', default=0.001, type=int,
+                    help='learning rate')
+parser.add_argument('--start_iter', default=0, type=int,
+                    help='iteration to start at')
 
 args = parser.parse_args()
 print(args)
@@ -34,20 +42,15 @@ print(args)
 #     torch.set_default_tensor_type('torch.FloatTensor')
 
 
-
-window_size = 114
-batch_size = 32
-
 num_classes = 2
-
-iter_count = 0
+iter_count = args.start_iter
 
 if len(sys.argv) < 2:
     print("must specify images directory")
     sys.exit()
 
 
-net = SlidingWindowCNN(window_size, num_classes)
+net = SlidingWindowCNN(args.window_size, num_classes)
 print(net)
 
 if args.cuda:
@@ -62,7 +65,7 @@ if args.cuda:
 
 
 # TODO try different types of opimizers and loss functions
-optimizer = optim.SGD(net.parameters(), lr = 0.0001)
+optimizer = optim.SGD(net.parameters(), lr = args.lr)
 criterion = nn.MSELoss()
 
 params = list(net.parameters())
@@ -70,10 +73,10 @@ print(len(params))
 print(params[0].size())
 
 
-dataset = CustomDetection(args.images_path, window_size, window_size, 'windows', label=False) #True)
+dataset = CustomDetection(args.images_path, args.window_size, args.window_size, 'windows', label=False) #True)
 
 
-data_loader = data.DataLoader(dataset, batch_size, 
+data_loader = data.DataLoader(dataset, args.batch_size, 
                                 num_workers=0, 
                                 shuffle=True,
                                 pin_memory=True)
@@ -104,7 +107,7 @@ while True:
         optimizer.step() # Does the update
 
         if iter_count % 100 == 0:
-            torch.save(net.state_dict(), "./saved_model_sliding_window.pth")
+            torch.save(net.state_dict(), "./saved_model_sliding_window_{}.pth".format(iter_count))
 
 
 
