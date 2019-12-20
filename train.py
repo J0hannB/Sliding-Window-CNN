@@ -102,7 +102,7 @@ while True:
         optimizer.zero_grad()
         out = net(images)
         loss = criterion(out, targets)
-        print("Iter {}, Loss: ".format(iter_counta) + str(loss.data))
+        print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
         loss.backward()
         optimizer.step() # Does the update
 
