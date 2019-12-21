@@ -56,7 +56,7 @@ if args.cuda:
 
 if args.resume is not None:
     print('Resuming training, loading {}...'.format(args.resume))
-    net_orig.load_state_dict(torch.load(args.resume))
+    net.load_state_dict(torch.load(args.resume))
 
 if args.cuda:
     net = net.cuda()
