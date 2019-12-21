@@ -15,7 +15,7 @@ def str2bool(v):
 
 parser = argparse.ArgumentParser(
     description='Train sliding window CNN')
-parser.add_argument('--resume',
+parser.add_argument('--saved_model',
                     default=None, type=str,
                     help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='./', type=str,
@@ -26,12 +26,6 @@ parser.add_argument('--images_path', default='./Images',
                     help='Location of images root directory')
 parser.add_argument('--window_size', default=114, type=int,
                     help='size of sliding window')
-parser.add_argument('--batch_size', default=32, type=int,
-                    help='number of windows to process at once')
-parser.add_argument('--lr', default=0.001, type=float,
-                    help='learning rate')
-parser.add_argument('--start_iter', default=0, type=int,
-                    help='iteration to start at')
 
 args = parser.parse_args()
 print(args)
@@ -43,28 +37,23 @@ print(args)
 
 
 num_classes = 2
-iter_count = args.start_iter
 
 
-
-net_orig = SlidingWindowCNN(args.window_size, num_classes)
-net = net_orig
+net = SlidingWindowCNN(args.window_size, num_classes)
 print(net)
 
 if args.cuda:
-    net = torch.nn.DataParallel(net_orig)
+    net = torch.nn.DataParallel(net)
 
-if args.resume is not None:
-    print('Resuming training, loading {}...'.format(args.resume))
-    net_orig.load_weights(args.resume)
+if args.saved_model is None:
+    print("must specify saved model")
+    sys.exit()
+
+print('Resuming training, loading {}...'.format(args.resume))
+net.load_weights(args.resume)
 
 if args.cuda:
     net = net.cuda()
-
-
-# TODO try different types of opimizers and loss functions
-optimizer = optim.SGD(net.parameters(), lr = args.lr)
-criterion = nn.MSELoss()
 
 params = list(net.parameters())
 print(len(params))
@@ -79,7 +68,22 @@ data_loader = data.DataLoader(dataset, args.batch_size,
                                 shuffle=True,
                                 pin_memory=True)
 
-batch_iterator = iter(data_loader)
+for i in range(len(data_loader.ids)):
+    num_windows = ### How do I get this?
+    windows = []
+    window_gts= []
+    window_classifications = []
+    for j in num_windows:
+        im, gt = data_loader.pull_item(i)
+        
+        # hndle cuda?
+
+        out = net(im.unsqueeze(0))
+
+        
+
+
+
 
 
 while True:
