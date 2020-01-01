@@ -73,7 +73,6 @@ print(params[0].size())
 
 dataset = CustomDetection(args.images_path, args.window_size, args.window_size, 'windows', label=False) #True)
 
-
 data_loader = data.DataLoader(dataset, args.batch_size, 
                                 num_workers=0, 
                                 shuffle=True,
@@ -96,6 +95,12 @@ while True:
         if args.cuda:
             images = images.cuda()
             targets = targets.cuda()
+
+        # for image, target in zip(images, targets):
+        #     img = image.view(224, 224, 3).numpy()
+        #     print(target)
+        #     cv.imshow("window", img)
+        #     cv.waitKey()
 
         optimizer.zero_grad()
         out = net(images)

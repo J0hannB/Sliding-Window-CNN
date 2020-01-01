@@ -9,6 +9,7 @@ import os
 import sys
 import numpy as np
 import argparse
+import cv2 as cv
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -42,15 +43,21 @@ num_classes = 2
 net = SlidingWindowCNN(args.window_size, num_classes)
 print(net)
 
-if args.cuda:
-    net = torch.nn.DataParallel(net)
+# if args.cuda:
+net = torch.nn.DataParallel(net)
 
 if args.saved_model is None:
     print("must specify saved model")
     sys.exit()
 
-print('Resuming training, loading {}...'.format(args.resume))
-net.load_weights(args.resume)
+
+print('Loading {}...'.format(args.saved_model))
+if args.cuda:
+    net.load_state_dict(torch.load(args.saved_model))
+else:
+    net.load_state_dict(torch.load(args.saved_model, map_location=torch.device('cpu')))
+net.eval()
+print('Finished loading model!')
 
 if args.cuda:
     net = net.cuda()
@@ -63,59 +70,66 @@ print(params[0].size())
 dataset = CustomDetection(args.images_path, args.window_size, args.window_size, 'windows', label=False) #True)
 
 
-data_loader = data.DataLoader(dataset, args.batch_size, 
-                                num_workers=0, 
-                                shuffle=True,
-                                pin_memory=True)
+# data_loader = data.DataLoader(dataset, args.batch_size, 
+#                                 num_workers=0, 
+#                                 shuffle=True,
+#                                 pin_memory=True)
 
-for i in range(len(data_loader.ids)):
-    num_windows = ### How do I get this?
+for i in range(len(dataset.ids)):
+    num_windows = 96### How do I get this?
     windows = []
     window_gts= []
     window_classifications = []
-    for j in num_windows:
-        im, gt = data_loader.pull_item(i)
+    for j in range(num_windows):
+        im, gt = dataset.pull_item(i)
+
+        img = im.view(224, 224, 3).numpy()
         
         # hndle cuda?
 
         out = net(im.unsqueeze(0))
+        print(out)
+        cv.imshow("window", img)
+        c = cv.waitKey()
 
-        
-
-
-
-
-
-while True:
-    try:
-
-        iter_count += 1
-
-        try:
-            images, targets = next(batch_iterator)
-        except StopIteration:
-            batch_iterator = iter(data_loader)
-            images, targets = next(batch_iterator)
-
-        if args.cuda:
-            images = images.cuda()
-            targets = targets.cuda()
-
-        optimizer.zero_grad()
-        out = net(images)
-        loss = criterion(out, targets)
-        print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
-        loss.backward()
-        optimizer.step() # Does the update
-
-        if iter_count % 100 == 0:
-            print("saving model after {} iterations".format(iter_count))
-            save_path = os.path.join(args.save_folder, "saved_model_sliding_window_{}.pth".format(iter_count))
-            torch.save(net.state_dict(), save_path)
+        if c == ord('q'):
+            sys.exit()
 
 
 
 
-    except KeyboardInterrupt:
-        print("caught KeyboardInterrupt")
-        break
+
+
+# while True:
+#     try:
+
+#         iter_count += 1
+
+#         try:
+#             images, targets = next(batch_iterator)
+#         except StopIteration:
+#             batch_iterator = iter(data_loader)
+#             images, targets = next(batch_iterator)
+
+#         if args.cuda:
+#             images = images.cuda()
+#             targets = targets.cuda()
+
+#         optimizer.zero_grad()
+#         out = net(images)
+#         loss = criterion(out, targets)
+#         print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
+#         loss.backward()
+#         optimizer.step() # Does the update
+
+#         if iter_count % 100 == 0:
+#             print("saving model after {} iterations".format(iter_count))
+#             save_path = os.path.join(args.save_folder, "saved_model_sliding_window_{}.pth".format(iter_count))
+#             torch.save(net.state_dict(), save_path)
+
+
+
+
+#     except KeyboardInterrupt:
+#         print("caught KeyboardInterrupt")
+#         break

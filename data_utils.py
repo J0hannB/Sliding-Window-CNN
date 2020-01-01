@@ -156,6 +156,8 @@ class CustomDetection(data.Dataset):
         label = self.get_label(img_id, self.window_idx)
         img = self.get_image(img_id, self.window_idx)
 
+        # cvimg = img
+
 
         self.window_idx += 1
         self.window_idx %= self.max_window_idx
@@ -174,6 +176,11 @@ class CustomDetection(data.Dataset):
             label = [0.0, 1.0]
         else:
             label = [1.0, 0.0]
+
+
+        # print(label)
+        # cv.imshow("window", cvimg)
+        # cv.waitKey()
 
 
         # im = torch.from_numpy(img).permute(2, 0, 1)
@@ -367,6 +374,8 @@ class CustomDetection(data.Dataset):
                                     window_name + '.jpg')
 
         img = cv.imread(image_file_path)
+        # cv.imshow("from dataset", img)
+        # cv.waitKey()
 
         return img
 
