@@ -50,6 +50,7 @@ iter_count = args.start_iter
 net_orig = SlidingWindowCNN(args.window_size, num_classes)
 net = net_orig
 print(net)
+net.train()
 
 if args.cuda:
     net = torch.nn.DataParallel(net_orig)
@@ -71,7 +72,11 @@ print(len(params))
 print(params[0].size())
 
 
-dataset = CustomDetection(args.images_path, args.window_size, args.window_size, 'windows', label=False) #True)
+dataset = CustomDetection(args.images_path, 
+                            args.window_size, 
+                            args.window_size, 
+                            'windows', 
+                            label=False) #True)
 
 data_loader = data.DataLoader(dataset, args.batch_size, 
                                 num_workers=0, 
@@ -105,11 +110,13 @@ while True:
         optimizer.zero_grad()
         out = net(images)
         loss = criterion(out, targets)
-        print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
         loss.backward()
         optimizer.step() # Does the update
 
-        if iter_count % 500 == 0:
+        if iter_count % 100 == 0:
+            print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
+
+        if iter_count % 1000 == 0:
             print("saving model after {} iterations".format(iter_count))
             save_path = os.path.join(args.save_folder, "saved_model_sliding_window_{}.pth".format(iter_count))
             torch.save(net.state_dict(), save_path)

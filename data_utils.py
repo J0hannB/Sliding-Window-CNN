@@ -6,6 +6,7 @@ import os.path as osp
 import sys
 import torch
 import torch.utils.data as data
+from torchvision import transforms
 import cv2 as cv
 import numpy as np
 import re
@@ -61,6 +62,8 @@ class ImageTransform(object):
 
     def __init__(self):
         self.size = 224
+        self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 
     def __call__(self, image, label):
 
@@ -68,6 +71,7 @@ class ImageTransform(object):
         image = cv.resize(image, (self.size, self.size))
         image = torch.from_numpy(image)
         image = image.view(3, self.size, self.size)
+        image = self.normalize(image)
 
         return image, label # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
@@ -244,16 +248,26 @@ class CustomDetection(data.Dataset):
         # print(height)
         # print(width)
 
-        recs = self.get_existing_windows(img_path)
+        recs, label_buffer = self.get_existing_windows(img_path)
         # recs = []
 
 
         while i <= height:
+            i_dex = i // self.window_size-1
+
+            if len(label_buffer) <= i_dex:
+                label_buffer.append([])
+                print(label_buffer)
+
             while j <= width:
-                print(i)
-                print(j)
+                j_dex = j // self.window_size-1
+
+                if len(label_buffer[i_dex]) <= j_dex:
+                    label_buffer[i_dex].append('')
+
                 img = cv.imread(img_path)
                 overlay = img.copy()
+                img_overlayed = img.copy()
 
                 for rec in recs:
                     if rec[2] == ord('y'):
@@ -262,18 +276,21 @@ class CustomDetection(data.Dataset):
                         color = (0, 0, 255)
                     cv.rectangle(overlay, rec[0], rec[1], color, -1)
                 alpha = 0.1
-                cv.addWeighted(overlay, alpha, img, 1-alpha, 0, img)
+                cv.addWeighted(overlay, alpha, img, 1-alpha, 0, img_overlayed)
 
                 window = img[i-self.window_size:i, j-self.window_size:j]
 
-                cv.rectangle(img, (j-self.window_size-2,i-self.window_size-2), (j+1,i+1), \
+                cv.rectangle(img_overlayed, (j-self.window_size-2,i-self.window_size-2), (j+1,i+1), \
                                 (0, 0, 255), 2)
 
-                window_path = os.path.join(self.root, self.window_sub_dir, \
-                                    os.path.splitext(os.path.split(img_path)[1])[0] + \
-                                    "_%d_%d" %(i, j))
+                self.draw_yolo_labels(img_overlayed, img_path)
 
-                cv.imshow("Full frame", img)
+                # window_path = os.path.join(self.root, self.window_sub_dir, \
+                #                     os.path.splitext(os.path.split(img_path)[1])[0] + \
+                #                     "_%d_%d" %(i, j))
+
+
+                cv.imshow("Full frame", img_overlayed)
                 cv.imshow("Window", cv.resize(window, (self.window_size*3, self.window_size*3)))
                 c = cv.waitKey()
 
@@ -285,14 +302,20 @@ class CustomDetection(data.Dataset):
                         continue
                     elif i > self.window_size:
                         i -= self.window_size
+                        i_dex = i // self.window_size-1
                         j = width
                         continue
                     else:
                         continue
                 elif c == ord('y') or c == ord('n'):
-                    cv.imwrite(window_path + '.jpg', window)
-                    with open(window_path + '.txt', 'w') as label_file:
-                        label_file.write(chr(c))
+                    # cv.imwrite(window_path + '.jpg', window)
+                    # with open(window_path + '.txt', 'w') as label_file:
+                    #     label_file.write(chr(c))
+
+                    print(label_buffer)
+                    print(i_dex)
+                    print(j_dex)
+                    label_buffer[i_dex][j_dex] = chr(c)
 
                     recs.append([(j-self.window_size,i-self.window_size), (j,i), c])
                 else:
@@ -304,35 +327,79 @@ class CustomDetection(data.Dataset):
             j = self.window_size
             i += self.window_size
 
+
+        label_path = os.path.join(self.root, \
+                            os.path.splitext(os.path.split(img_path)[1])[0] + \
+                            "_windows.txt")
+
+        with open(label_path, 'w') as label_file:
+            print("saving label file")
+            for i in range(len(label_buffer)):
+                for j in range(len(label_buffer[i])):
+                    label_file.write(label_buffer[i][j])
+                label_file.write('\n')
+
+
+
     def get_existing_windows(self, img_path):
         
         img_id = os.path.split(img_path)[1][0:8]
         print(img_id)
 
-        window_root = os.path.join(self.root, self.window_sub_dir)
-        window_files = os.listdir(window_root)
+        label_path = os.path.join(self.root, \
+                            os.path.splitext(os.path.split(img_path)[1])[0] + \
+                            "_windows.txt")
+
+        label_buffer = []
+
+        # window_root = os.path.join(self.root, self.window_sub_dir)
+        # window_files = os.listdir(window_root)
 
         recs = []
 
-        for file in window_files:
-            if img_id in file and os.path.splitext(file)[1] == '.txt':
-                print("found existing window: " + file)    
+        if os.path.exists(label_path):
+            with open(label_path, 'r') as label_file:
+                lines = label_file.readlines()
 
-                with open(os.path.join(window_root, file)) as label_file:
-                    c = label_file.read()      
+                rows = len(lines)
+                if(rows == 0):
+                    return recs, []
 
-                numbers = re.findall('(\d+)\_(\d+)\_(\d+)', file)     
-                x2 = int(numbers[0][2])
-                y2 = int(numbers[0][1])
-                x1 = x2 - self.window_size
-                y1 = y2 - self.window_size
+                cols = len(lines[0])
 
-                rec = [(x1, y1), (x2, y2), ord(c)]
+                for i in range(rows):
+                    label_buffer.append([])
+                    for j in range(cols):
+                        label = lines[i][j]
+                        if label != '\n':
+                            rec = [(j*self.window_size, i*self.window_size),
+                                    ((j+1)*self.window_size, (i+1)*self.window_size), 
+                                    ord(label)]
+                            label_buffer[i].append(label)
+                            # print(rec)
+                            recs.append(rec)
 
-                print(rec)
-                recs.append(rec)
 
-        return recs
+
+        # for file in window_files:
+        #     if img_id in file and os.path.splitext(file)[1] == '.txt':
+        #         print("found existing window: " + file)    
+
+        #         with open(os.path.join(window_root, file)) as label_file:
+        #             c = label_file.read()      
+
+        #         numbers = re.findall('(\d+)\_(\d+)\_(\d+)', file)     
+        #         x2 = int(numbers[0][2])
+        #         y2 = int(numbers[0][1])
+        #         x1 = x2 - self.window_size
+        #         y1 = y2 - self.window_size
+
+        #         rec = [(x1, y1), (x2, y2), ord(c)]
+
+        #         print(rec)
+        #         recs.append(rec)
+
+        return recs, label_buffer
 
     def id_to_window_name(self, image_id, window_idx):
         window_files = os.listdir(os.path.join(self.root, self.window_sub_dir))
@@ -357,27 +424,84 @@ class CustomDetection(data.Dataset):
 
     def get_label(self, image_id, window_idx):
 
-        window_name = self.id_to_window_name(image_id, window_idx)
-        label_file_path = os.path.join(self.root, \
-                                    self.window_sub_dir, \
-                                    window_name + '.txt')
-        with open(label_file_path) as label_file:
-            c = label_file.read()
+        image_path = os.path.join(self.root, image_id + '.jpg')
+
+        label_path = os.path.join(self.root, \
+                            os.path.splitext(os.path.split(image_path)[1])[0] + \
+                            "_windows.txt")
+
+        with open(label_path) as label_file:
+            lines = label_file.readlines()
+
+            hor_window_count = len(lines[0]) - 1 # ignore newline
+            ver_window_count = len(lines)
+
+            x = (window_idx % hor_window_count)
+            y = (window_idx // hor_window_count)
+
+            # print(x)
+            # print(y)
+            # print(lines)
+
+            return lines[y][x]
+
+        # window_name = self.id_to_window_name(image_id, window_idx)
+        # label_file_path = os.path.join(self.root, \
+        #                             self.window_sub_dir, \
+        #                             window_name + '.txt')
+        # with open(label_file_path) as label_file:
+        #     c = label_file.read()
 
         return c
 
     def get_image(self, image_id, window_idx):
 
-        window_name = self.id_to_window_name(image_id, window_idx)
-        image_file_path = os.path.join(self.root, \
-                                    self.window_sub_dir, \
-                                    window_name + '.jpg')
+        image_path = os.path.join(self.root, image_id + '.jpg')
 
-        img = cv.imread(image_file_path)
+        img = cv.imread(image_path)
+        # cv.imshow("full image", img)
+        height, width, channels = img.shape
+
+        hor_window_count = width // self.window_size
+        ver_window_count = height // self.window_size
+
+        x1 = (window_idx % hor_window_count) * self.window_size
+        y1 = (window_idx // hor_window_count) * self.window_size
+        x2 = x1 + self.window_size
+        y2 = y1 + self.window_size
+
+        window = img[y1:y2, x1:x2]
+
+        return window
+
+
+
+
+        # window_name = self.id_to_window_name(image_id, window_idx)
+        # image_file_path = os.path.join(self.root, \
+        #                             self.window_sub_dir, \
+        #                             window_name + '.jpg')
+
+        # img = cv.imread(image_file_path)
         # cv.imshow("from dataset", img)
         # cv.waitKey()
 
         return img
+
+    def draw_yolo_labels(self, img, img_path):
+        yolo_label_path = os.path.splitext(img_path)[0] + '.txt'
+        height, width, channels = img.shape
+        transform = YOLOAnnotationTransform()
+
+        for line in open(yolo_label_path):
+            rec = transform([line], 1, 1)[0]
+            # print(rec)
+
+            cv.rectangle(img, (int(rec[0]*width), int(rec[1]*height)), 
+                            (int(rec[2]*width), int(rec[3]*height)),
+                            (0, 255, 255), 2)
+
+
 
 
 

@@ -42,6 +42,7 @@ num_classes = 2
 
 net = SlidingWindowCNN(args.window_size, num_classes)
 print(net)
+net.eval()
 
 # if args.cuda:
 net = torch.nn.DataParallel(net)

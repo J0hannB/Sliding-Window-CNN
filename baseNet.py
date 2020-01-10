@@ -17,7 +17,8 @@ class SlidingWindowCNN(nn.Module):
         self.size = size
 
         # TODO: try vgg19 or other variants 
-        self.vgg = models.vgg16(pretrained=False).features
+        # self.vgg = models.vgg11(pretrained=False).features
+        self.vgg = models.vgg11(pretrained=False).features
         # self.slice1 = torch.nn.Sequential()
         # self.slice2 = torch.nn.Sequential()
         # self.slice3 = torch.nn.Sequential()
@@ -71,3 +72,9 @@ class SlidingWindowCNN(nn.Module):
         return x
 
         # return out 
+
+    def train(self):
+        self.vgg.train()
+
+    def eval(self):
+        self.vgg.eval()
