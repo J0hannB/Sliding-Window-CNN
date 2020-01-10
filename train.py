@@ -112,7 +112,7 @@ while True:
         loss.backward()
         optimizer.step() # Does the update
 
-        if iter_count % 100 == 0:
+        if iter_count % 10 == 0:
             print("Iter {}, Loss: ".format(iter_count) + str(loss.data))
 
         if iter_count % 1000 == 0:
