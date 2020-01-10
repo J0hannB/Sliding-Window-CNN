@@ -68,7 +68,10 @@ print(len(params))
 print(params[0].size())
 
 
-dataset = CustomDetection(args.images_path, args.window_size, args.window_size, 'windows', label=False) #True)
+dataset = CustomDetection(args.images_path, 
+                            args.window_size, 
+                            args.window_size, 
+                            label=False) #True)
 
 
 # data_loader = data.DataLoader(dataset, args.batch_size, 

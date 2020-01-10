@@ -91,7 +91,7 @@ class CustomDetection(data.Dataset):
             (eg: take in caption string, return tensor of word indices)
     """
 
-    def __init__(self, root, step_size, window_size, window_sub_dir, label=False,
+    def __init__(self, root, step_size, window_size, label=False,
                  transform=ImageTransform(), target_transform=None
                  ):
         self.root = root
@@ -102,35 +102,23 @@ class CustomDetection(data.Dataset):
         self.name = 'Custom'
         self.step_size = step_size
         self.window_size = window_size
-        self.window_sub_dir = window_sub_dir
 
         self.last_img_id = None
 
         self.window_idx = 0
         self.max_window_idx = None
 
-        if not os.path.exists(os.path.join(root, window_sub_dir)):
-            os.mkdir(os.path.join(root, window_sub_dir))
-
-
         self.ids = list()
         files = os.listdir(root)
         for file in files:
-            if osp.splitext(file)[1] == '.jpg' and file.find(window_sub_dir) < 0:
+            if osp.splitext(file)[1] == '.jpg':
 
                 name = osp.splitext(file)[0]
+                self.ids.append(name)
                 # print(name)
 
                 if label:
-                    self.ids.append(name)
                     self.split_windows(os.path.join(root, file) )
-                else: 
-                    window_files = os.listdir(os.path.join(root, window_sub_dir))
-                    for window_file in window_files:
-                        # print(window_file)
-                        if window_file.find(name) >= 0 and \
-                                name not in self.ids:
-                            self.ids.append(name)
 
         print(self.ids)
 
