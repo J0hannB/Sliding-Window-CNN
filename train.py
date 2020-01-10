@@ -65,7 +65,7 @@ if args.cuda:
 
 # TODO try different types of opimizers and loss functions
 optimizer = optim.SGD(net.parameters(), lr = args.lr)
-criterion = nn.MSELoss()
+criterion = nn.L1Loss()
 
 params = list(net.parameters())
 print(len(params))
